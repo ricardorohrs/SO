@@ -1,0 +1,3 @@
+RockInRio|5|100|10
+SuperBowl|10|300|10
+Tomorrowland|15|150|20
