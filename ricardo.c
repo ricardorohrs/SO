@@ -389,11 +389,11 @@ int main(int argc, char const *argv[]) {
       pthread_join(threads[i], NULL);
     }*/
 
-  for (int j = 0; j < aux; ++j) {
+/*  for (int j = 0; j < aux; ++j) {
     for (int i = 0; i < max[j]; ++i) {
       pthread_join(threads[i], NULL);
     }
-  }
+  }*/
 
   fclose(arq);
   

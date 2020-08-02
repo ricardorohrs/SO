@@ -19,7 +19,6 @@ typedef struct {
   FILE *arq;
   FILE *arqout;
   int idCliente = 0;
-
   sem_t semaf;
 
 bool aprova_venda(void *input) {
@@ -176,7 +175,7 @@ int main(int argc, char const *argv[]) {
     aux++;
   }
 
-  int max[5], max2 = 0;
+  int max[10], max2 = 0;
 
   for (int i = 0; i < aux; ++i) {
     max[i] = evento[i].num_clientes;
@@ -206,8 +205,6 @@ int main(int argc, char const *argv[]) {
     ingVendido = 0;
   }
 
-  
-  free(threads);
   fclose(arq);
   
   return 0;
