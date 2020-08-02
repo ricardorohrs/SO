@@ -14,6 +14,7 @@ typedef struct {
   float valor_ing;
   int num_clientes;
   int pagRecusado;
+  int ingIndispo;
 } Evento;
 
   FILE *arq;
@@ -101,6 +102,9 @@ int ingDispo (void *input) {
       cont++;
   }
 
+  if (cont == 0)
+    evento2->ingIndispo++;
+
   return cont;
 }
 
@@ -170,6 +174,7 @@ int main(int argc, char const *argv[]) {
       evento[aux].ingressos[i] = 0;
     }
 
+    evento[aux].ingIndispo = 0;
     evento[aux].pagRecusado = 0;
 
     aux++;
@@ -200,9 +205,14 @@ int main(int argc, char const *argv[]) {
       if (evento[j].ingressos[i] == 1)
         ingVendido++;
     }
-    printf("\n***Espetáculo '%s': %d/%d ingressos vendidos (R$ %.2f faturados); ", evento[j].nome_evento, ingVendido, evento[j].max_ing, ingVendido*evento[j].valor_ing);
-    printf("%d/%d clientes sem ingresso: %d por falha de pagamento;\n", evento[j].num_clientes-ingVendido, evento[j].num_clientes, evento[j].pagRecusado); 
-    ingVendido = 0;
+  
+  printf("\n***Espetáculo '%s': %d/%d ingressos vendidos (R$ %.2f faturados); ", evento[j].nome_evento, ingVendido, evento[j].max_ing, ingVendido*evento[j].valor_ing);
+  ingVendido = 0;
+  if (evento[j].ingIndispo != 0)
+    printf("%d/%d clientes sem ingresso: %d por falha no pagamento e %d por indisponibilidade de ingressos;\n", evento[j].num_clientes-ingVendido, evento[j].num_clientes, evento[j].pagRecusado, evento[j].ingIndispo); 
+  else
+    printf("%d/%d clientes sem ingresso: %d por falha no pagamento;\n", evento[j].num_clientes-ingVendido, evento[j].num_clientes, evento[j].pagRecusado); 
+  
   }
 
   fclose(arq);
