@@ -20,16 +20,18 @@ typedef struct {
   FILE *arq;
   FILE *arqout;
   int idCliente = 0;
-  sem_t semaf;
+  sem_t mutex;
 
 bool aprova_venda(void *input) {
   Evento *evento2 = input;
   int aux = rand()%2;
-  //sleep(rand()%5); //tempo de espera para aprovar a compra
-  if (aux == 1)
+  sleep(rand()%5);
+  if (aux == 1) {
+    sem_post(&mutex);
     return true;
-  else {
+  } else {
     evento2->pagRecusado++;
+    sem_post(&mutex);
     return false;
   }
 }
@@ -38,10 +40,10 @@ void escolhendoLugar (void *input) {
   Evento *evento2 = input;
 
   if((arqout = fopen("output.txt", "a")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
-  fprintf(arqout, "O cliente %d está escolhendo lugar no espetáculo '%s'\n", idCliente, evento2->nome_evento);
-  printf("\nO cliente %d está escolhendo lugar no espetáculo '%s'\n", idCliente, evento2->nome_evento);
+  fprintf(arqout, "> O cliente %d está escolhendo lugar no espetáculo '%s'\n", idCliente, evento2->nome_evento);
+  printf("\n> O cliente %d está escolhendo lugar no espetáculo '%s'\n", idCliente, evento2->nome_evento);
 
   fclose(arqout);
 
@@ -52,10 +54,10 @@ void escolheuLugar (int aux, void *input) {
   Evento *evento2 = input;
 
   if((arqout = fopen("output.txt", "a")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
-  fprintf(arqout, "\nO cliente %d escolheu o lugar %d no espetáculo '%s' e está aguardando a autorização do pagamento!\n", idCliente, aux, evento2->nome_evento);
-  printf("\nO cliente %d escolheu o lugar %d no espetáculo '%s' e está aguardando a autorização do pagamento!\n", idCliente, aux, evento2->nome_evento);
+  fprintf(arqout, "\n> O cliente %d escolheu o lugar %d no espetáculo '%s' e está aguardando a autorização do pagamento!\n", idCliente, aux, evento2->nome_evento);
+  printf("\n> O cliente %d escolheu o lugar %d no espetáculo '%s' e está aguardando a autorização do pagamento!\n", idCliente, aux, evento2->nome_evento);
 
   fclose(arqout);
 
@@ -66,10 +68,10 @@ void pagamentoAprovado (int aux, void *input) {
   Evento *evento2 = input;
 
   if((arqout = fopen("output.txt", "a")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
-  fprintf(arqout, "\nO cliente %d teve seu pagamento aprovado e fez a compra do lugar %d do espetáculo '%s'\n", idCliente, aux, evento2->nome_evento);
-  printf("\nO cliente %d teve seu pagamento aprovado e fez a compra do lugar %d do espetáculo '%s'\n", idCliente, aux, evento2->nome_evento);
+  fprintf(arqout, "\n< O cliente %d teve seu pagamento aprovado e fez a compra do lugar %d do espetáculo '%s'\n", idCliente, aux, evento2->nome_evento);
+  printf("\n< O cliente %d teve seu pagamento aprovado e fez a compra do lugar %d do espetáculo '%s'\n", idCliente, aux, evento2->nome_evento);
   
   fclose(arqout);
   pthread_exit(evento2);
@@ -81,10 +83,10 @@ void pagamentoNaoAprovado (void *input) {
   Evento *evento2 = input;
 
   if((arqout = fopen("output.txt", "a")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
-  fprintf(arqout, "\nO pagamento do cliente %d no espetáculo '%s' não foi autorizado\n", idCliente, evento2->nome_evento);
-  printf("\nO pagamento do cliente %d no espetáculo '%s' não foi autorizado\n", idCliente, evento2->nome_evento);
+  fprintf(arqout, "\n< O pagamento do cliente %d no espetáculo '%s' não foi autorizado\n", idCliente, evento2->nome_evento);
+  printf("\n< O pagamento do cliente %d no espetáculo '%s' não foi autorizado\n", idCliente, evento2->nome_evento);
 
   fclose(arqout);
   pthread_exit(evento2);
@@ -109,22 +111,26 @@ int ingDispo (void *input) {
 }
 
 void* function(void *input) {
+
+  sem_wait(&mutex);
   Evento *evento2 = input;
   int aux = 0;
   int MAX = evento2->max_ing;
+  idCliente++;
 
   do {
     escolhendoLugar(evento2);
-    //sleep(rand()%5); //tempo de espera pra escolher
-    aux = rand()%MAX; //escolhendo o lugar
+    sleep(rand()%5);
+    aux = rand()%MAX;
     escolheuLugar(aux, evento2);
 
     if (evento2->ingressos[aux] != 0) {
       if (ingDispo(evento2) > 0){
-        printf("Lugar já está ocupado, escolha de novo! %d ingressos disponíveis.\n", ingDispo(evento2));
+        printf("-> Lugar já está ocupado, escolha de novo! %d ingressos disponíveis.\n", ingDispo(evento2));
       } else {
-          printf("Sem mais ingressos disponíveis!\n");
+          printf("-> Sem mais ingressos disponíveis!\n");
           pthread_exit(evento2);
+          sem_post(&mutex);
         }
     }
   } while (evento2->ingressos[aux] != 0);
@@ -136,6 +142,8 @@ void* function(void *input) {
     pagamentoNaoAprovado(evento2);
     pthread_exit(evento2);
   }
+
+  sem_post(&mutex);
 
   return 0;
 }
@@ -149,13 +157,13 @@ int main(int argc, char const *argv[]) {
   Evento evento[10];
   int ingVendido = 0;
 
-  sem_init (&semaf, 0, 1);
+  sem_init (&mutex, 0, 1);
 
   if((arq = fopen("input.txt", "r")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
   if((arqout = fopen("output.txt", "a")) == NULL)
-    printf("Erro ao abrir o arquivo.\n");
+    printf("*Erro ao abrir o arquivo.*\n");
 
   while (fgets(result, 90, arq)) {
     strtok(result, s);
@@ -165,14 +173,8 @@ int main(int argc, char const *argv[]) {
     evento[aux].valor_ing = atoi(strtok(NULL, s));  
     evento[aux].num_clientes = atoi(strtok(NULL, s));
 
-/*    printf("%s\n", evento[aux].nome_evento);
-    printf("max_ing %d\n", evento[aux].max_ing);
-    printf("valor_ing %d\n", evento[aux].valor_ing);
-    printf("num_clientes %d\n\n", evento[aux].num_clientes);*/
-
-    for (int i = 0; i < evento[aux].max_ing; i++) {
+    for (int i = 0; i < evento[aux].max_ing; i++)
       evento[aux].ingressos[i] = 0;
-    }
 
     evento[aux].ingIndispo = 0;
     evento[aux].pagRecusado = 0;
@@ -190,15 +192,13 @@ int main(int argc, char const *argv[]) {
   pthread_t* threads = (pthread_t*) malloc(max2 * sizeof(pthread_t));
 
   for (int j = 0; j < aux; ++j) {
-    for (int i = 0; i < max[j]; ++i) {
-      idCliente++;
+    for (int i = 0; i < max[j]; ++i){
       pthread_create(&threads[i], NULL, function, (void*)&evento[j]);
-      pthread_join(threads[j], NULL);
     }
   }
 
-//  for (int i = 0; i < max2; ++i)
-  //  pthread_join(threads[i], NULL);
+  for (int i = 0; i < max2; ++i)
+    pthread_join(threads[i], NULL);
 
   for (int j = 0; j < aux; ++j) {
     for (int i = 0; i < evento[j].max_ing; i++) {
@@ -215,6 +215,8 @@ int main(int argc, char const *argv[]) {
   
   }
 
+  sem_destroy(&mutex);
+  free(threads);
   fclose(arq);
   
   return 0;
